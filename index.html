@@ -1,543 +1,1040 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vulnerability Management System — Demo</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Vulnerability Management System</title>
 <style>
-:root {
-  --bg: #0a0e14;
-  --bg2: #0f1520;
-  --bg3: #151d2e;
-  --border: rgba(99,179,237,0.12);
-  --border2: rgba(99,179,237,0.22);
-  --accent: #3b82f6;
-  --accent2: #60a5fa;
-  --text: #e2e8f0;
-  --text2: #8ca0c0;
-  --text3: #4a6080;
-  --mono: 'IBM Plex Mono', monospace;
-  --sans: 'Inter', 'Segoe UI', sans-serif;
-  --red: #ef4444; --red-bg: rgba(239,68,68,0.1);
-  --orange: #f97316; --orange-bg: rgba(249,115,22,0.1);
-  --yellow: #eab308; --yellow-bg: rgba(234,179,8,0.1);
-  --green: #22c55e; --green-bg: rgba(34,197,94,0.1);
-  --blue: #3b82f6; --blue-bg: rgba(59,130,246,0.1);
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0f1117; color: #e2e8f0; }
+  .sidebar { position: fixed; left: 0; top: 0; width: 220px; height: 100vh; background: #1a1d27; border-right: 1px solid #2d3148; padding: 20px 0; z-index: 100; }
+  .sidebar-logo { padding: 0 20px 20px; border-bottom: 1px solid #2d3148; margin-bottom: 16px; }
+  .sidebar-logo h1 { font-size: 15px; color: #7c85f5; font-weight: 700; }
+  .sidebar-logo p { font-size: 11px; color: #64748b; margin-top: 2px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; cursor: pointer; font-size: 13px; color: #94a3b8; transition: all .15s; border-left: 3px solid transparent; }
+  .nav-item:hover { background: #232638; color: #e2e8f0; }
+  .nav-item.active { background: #1e2235; color: #7c85f5; border-left-color: #7c85f5; }
+  .main { margin-left: 220px; padding: 24px; min-height: 100vh; box-sizing: border-box; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .page.active.flex-page { display: flex; }
+  .page-title { font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #e2e8f0; }
 
-/* scanline overlay */
-body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);pointer-events:none;z-index:9999}
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 16px; }
+  .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .5px; }
+  .stat-value { font-size: 28px; font-weight: 700; margin-top: 4px; }
 
-.layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+  .badge-critical { background: #3b1515; color: #f87171; border: 1px solid #7f1d1d; }
+  .badge-high { background: #2d1d08; color: #fb923c; border: 1px solid #7c3103; }
+  .badge-medium { background: #2d2308; color: #fbbf24; border: 1px solid #713f12; }
+  .badge-low { background: #0d2d1a; color: #4ade80; border: 1px solid #14532d; }
+  .badge-unknown { background: #1e2235; color: #94a3b8; border: 1px solid #334155; }
+  .badge-new { background: #1e2235; color: #818cf8; border: 1px solid #3730a3; }
+  .badge-notified { background: #0d2d1a; color: #4ade80; border: 1px solid #14532d; }
+  .badge-resolved { background: #0d2020; color: #22d3ee; border: 1px solid #164e63; }
 
-/* Sidebar */
-.sidebar{background:var(--bg2);border-left:1px solid var(--border);padding:0;display:flex;flex-direction:column}
-.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid var(--border)}
-.sidebar-logo .logo-text{font-family:var(--mono);font-size:11px;color:var(--accent2);letter-spacing:2px;text-transform:uppercase}
-.sidebar-logo .logo-sub{font-size:10px;color:var(--text3);margin-top:3px;font-family:var(--mono)}
-.nav{padding:12px 0;flex:1}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;color:var(--text2);font-size:13px;transition:all 0.15s;border-right:2px solid transparent;position:relative}
-.nav-item:hover{color:var(--text);background:rgba(59,130,246,0.05)}
-.nav-item.active{color:var(--accent2);background:rgba(59,130,246,0.08);border-right-color:var(--accent)}
-.nav-icon{font-size:16px;opacity:0.8;width:18px;text-align:center}
-.nav-badge{margin-right:auto;background:var(--accent);color:#fff;font-size:10px;font-family:var(--mono);padding:1px 6px;border-radius:3px}
-.sidebar-footer{padding:16px 20px;border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--text3)}
-.status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-left:6px;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+  .card-header { padding: 14px 20px; border-bottom: 1px solid #2d3148; display: flex; align-items: center; justify-content: space-between; }
+  .card-header h3 { font-size: 14px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { padding: 10px 16px; text-align: left; color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid #2d3148; background: #141620; }
+  td { padding: 12px 16px; border-bottom: 1px solid #1e2235; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #1e2235; }
 
-/* Main */
-.main{overflow-y:auto}
-.topbar{padding:16px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);position:sticky;top:0;z-index:10}
-.topbar-title{font-family:var(--mono);font-size:13px;color:var(--text2)}
-.topbar-title span{color:var(--accent2)}
-.topbar-actions{display:flex;gap:8px}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:4px;border:1px solid var(--border2);background:transparent;cursor:pointer;font-size:12px;color:var(--text2);font-family:var(--sans);transition:all 0.15s}
-.btn:hover{border-color:var(--accent);color:var(--accent2);background:var(--blue-bg)}
-.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn-primary:hover{background:#2563eb;border-color:#2563eb}
-.btn-primary:disabled{opacity:0.4;cursor:not-allowed}
-.btn-sm{padding:5px 10px;font-size:11px}
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 5px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 8px 12px; background: #141620; border: 1px solid #2d3148;
+    border-radius: 6px; color: #e2e8f0; font-size: 13px; outline: none;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #7c85f5; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
-/* Content panels */
-.panel{display:none;padding:24px 28px}
-.panel.active{display:block}
+  .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .15s; }
+  .btn-primary { background: #4f46e5; color: white; }
+  .btn-primary:hover { background: #4338ca; }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+  .btn-process { background: #0f4c81; color: #60a5fa; border: 1px solid #1e40af; }
+  .btn-process:hover { background: #1e40af; }
 
-/* Stats row */
-.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
-.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:16px;position:relative;overflow:hidden}
-.stat-card::before{content:'';position:absolute;top:0;right:0;width:40px;height:100%;background:linear-gradient(to left,rgba(59,130,246,0.04),transparent)}
-.stat-num{font-family:var(--mono);font-size:26px;font-weight:500;margin-bottom:4px}
-.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-family:var(--mono)}
-.stat-card.red .stat-num{color:var(--red)}
-.stat-card.orange .stat-num{color:var(--orange)}
-.stat-card.yellow .stat-num{color:var(--yellow)}
-.stat-card.blue .stat-num{color:var(--accent2)}
+  .method-db { background: #052e16; color: #4ade80; border: 1px solid #14532d; }
+  .method-llm { background: #2d1d08; color: #fbbf24; border: 1px solid #713f12; }
+  .method-unresolved { background: #2d1515; color: #f87171; border: 1px solid #7f1d1d; }
 
-/* CVE grid */
-.section-title{font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
-.cve-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:20px}
-.cve-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:14px 16px;cursor:pointer;transition:all 0.15s;position:relative}
-.cve-card:hover{border-color:var(--border2);background:var(--bg3)}
-.cve-card.selected{border-color:var(--accent);background:var(--bg3);box-shadow:0 0 0 1px var(--accent)}
-.cve-card.selected::before{content:'✓';position:absolute;top:10px;left:12px;color:var(--accent);font-size:12px;font-family:var(--mono)}
-.cve-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.cve-id{font-family:var(--mono);font-size:11px;color:var(--accent2)}
-.badge{font-size:10px;padding:2px 7px;border-radius:3px;font-family:var(--mono);letter-spacing:0.5px}
-.b-critical{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,0.25)}
-.b-high{background:var(--orange-bg);color:var(--orange);border:1px solid rgba(249,115,22,0.25)}
-.b-medium{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(234,179,8,0.25)}
-.b-low{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,0.25)}
-.cve-title{font-size:13px;color:var(--text);margin-bottom:6px;line-height:1.4}
-.cve-meta{font-family:var(--mono);font-size:10px;color:var(--text3);display:flex;gap:12px}
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 12px 16px; font-size: 13px; z-index: 999; transform: translateY(80px); opacity: 0; transition: all .3s; max-width: 360px; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.ok { border-color: #14532d; }
+  .toast.err { border-color: #7f1d1d; }
 
-/* Action bar */
-.action-bar{display:flex;gap:10px;align-items:center;margin-bottom:24px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:6px}
-
-/* Results */
-.result-section{animation:fadeIn 0.3s ease}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.result-block{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:16px 20px;margin-bottom:12px}
-.result-block h3{font-family:var(--mono);font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.result-block h3 .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.dot-green{background:var(--green)}
-.dot-blue{background:var(--accent)}
-.dot-orange{background:var(--orange)}
-.info-row{display:grid;grid-template-columns:130px 1fr;gap:8px;margin-bottom:8px;align-items:start}
-.info-key{font-family:var(--mono);font-size:11px;color:var(--text3)}
-.info-val{font-size:13px;color:var(--text)}
-.owner-card{display:flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:10px 14px;margin-bottom:8px}
-.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0;font-family:var(--mono)}
-.owner-info{flex:1}
-.owner-name{font-size:13px;font-weight:500;color:var(--text)}
-.owner-detail{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:2px}
-.asset-tag{display:inline-flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:3px;margin:2px}
-.team-tag{display:inline-flex;align-items:center;gap:4px;background:var(--blue-bg);border:1px solid rgba(59,130,246,0.2);color:var(--accent2);font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:3px;margin:2px}
-
-/* Email preview */
-.email-preview{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:16px;font-family:var(--mono);font-size:11px;color:var(--text2);line-height:1.8;white-space:pre-wrap;direction:ltr;text-align:left}
-.email-sent{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--green-bg);border:1px solid rgba(34,197,94,0.2);border-radius:4px;font-size:12px;color:var(--green);margin-top:10px;font-family:var(--mono)}
-
-/* Upload */
-.upload-zone{border:1px dashed var(--border2);border-radius:6px;padding:40px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:16px}
-.upload-zone:hover{border-color:var(--accent);background:var(--blue-bg)}
-.upload-zone input{display:none}
-.upload-icon{font-size:32px;color:var(--text3);margin-bottom:10px}
-.upload-text{font-size:13px;color:var(--text2)}
-.upload-sub{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:6px}
-.code-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:14px;font-family:var(--mono);font-size:11px;color:var(--text);resize:vertical;min-height:120px;direction:ltr;text-align:left}
-.code-input:focus{outline:none;border-color:var(--accent)}
-
-/* Notifications list */
-.notif-row{display:grid;grid-template-columns:110px 1fr auto auto;gap:12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px}
-.notif-row:last-child{border-bottom:none}
-.notif-cve{font-family:var(--mono);font-size:11px;color:var(--accent2)}
-.notif-time{font-family:var(--mono);font-size:10px;color:var(--text3)}
-
-/* Loading */
-.loading{display:flex;align-items:center;gap:10px;color:var(--text2);font-family:var(--mono);font-size:12px;padding:20px}
-.lds{display:flex;gap:4px}
-.lds span{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:ld 0.9s infinite}
-.lds span:nth-child(2){animation-delay:0.15s}
-.lds span:nth-child(3){animation-delay:0.3s}
-@keyframes ld{0%,80%,100%{transform:scale(0.6);opacity:0.3}40%{transform:scale(1);opacity:1}}
-
-/* Terminal blink */
-.blink{animation:blink 1s step-end infinite}
-@keyframes blink{50%{opacity:0}}
-
-/* Scrollbar */
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:var(--bg)}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-
-@media(max-width:700px){
-  .layout{grid-template-columns:1fr}
-  .sidebar{display:none}
-  .stats-row{grid-template-columns:repeat(2,1fr)}
-  .cve-grid{grid-template-columns:1fr}
-}
+  .empty { text-align: center; padding: 40px; color: #475569; font-size: 13px; }
+  .loading { text-align: center; padding: 20px; color: #64748b; font-size:13px; }
+  .chip { display: inline-block; background: #1e2235; border: 1px solid #2d3148; border-radius: 4px; padding: 1px 6px; font-size: 11px; color: #94a3b8; margin: 1px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+  .tab { padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; color: #64748b; border: 1px solid transparent; }
+  .tab.active { background: #1e2235; color: #7c85f5; border-color: #2d3148; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #334155; border-top-color: #7c85f5; border-radius: 50%; animation: spin .7s linear infinite; vertical-align:middle; margin-left:6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .warn-banner { background: #2d2308; border: 1px solid #713f12; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #fbbf24; }
+  .demo-banner { background: #0f1e3d; border: 1px solid #1e3a6e; border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; font-size: 12px; color: #60a5fa; }
 </style>
 </head>
 <body>
-<div class="layout">
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-text">VULN//MGMT</div>
-      <div class="logo-sub">v2.0 — demo mode</div>
+
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <h1>🛡️ VulnManager</h1>
+    <p>Vulnerability Management System</p>
+  </div>
+  <div style="padding:10px 20px;border-bottom:1px solid #2d3148;margin-bottom:8px">
+    <div style="font-size:11px;color:#64748b;margin-bottom:6px;text-transform:uppercase">Processing Mode</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div id="mode-toggle" onclick="toggleMode()" style="width:36px;height:20px;border-radius:10px;background:#334155;cursor:pointer;position:relative;transition:background .2s">
+        <div id="mode-knob" style="width:16px;height:16px;border-radius:50%;background:white;position:absolute;top:2px;left:2px;transition:left .2s"></div>
+      </div>
+      <span id="mode-label" style="font-size:12px;color:#94a3b8">Manual</span>
     </div>
-    <nav class="nav">
-      <div class="nav-item active" onclick="showPanel('process')">
-        <span class="nav-icon">⚡</span> Process CVE
-        <span class="nav-badge" id="navBadge">5</span>
-      </div>
-      <div class="nav-item" onclick="showPanel('upload')">
-        <span class="nav-icon">↑</span> Upload File
-      </div>
-      <div class="nav-item" onclick="showPanel('dashboard')">
-        <span class="nav-icon">▦</span> Dashboard
-      </div>
-      <div class="nav-item" onclick="showPanel('assets')">
-        <span class="nav-icon">◈</span> Assets
-      </div>
-    </nav>
-    <div class="sidebar-footer">
-      <span class="status-dot"></span>DEMO MODE ACTIVE<br>
-      <span style="opacity:0.5">no backend required</span>
-    </div>
-  </aside>
-
-  <!-- Main -->
-  <main class="main">
-    <div class="topbar">
-      <div class="topbar-title">VULN//MGMT › <span id="panelName">Process CVE</span></div>
-      <div class="topbar-actions">
-        <button class="btn btn-sm" onclick="showPanel('upload')">↑ Upload</button>
-      </div>
-    </div>
-
-    <!-- Process Panel -->
-    <div id="panel-process" class="panel active">
-      <div class="stats-row">
-        <div class="stat-card red"><div class="stat-num" id="sCount-critical">0</div><div class="stat-label">CRITICAL</div></div>
-        <div class="stat-card orange"><div class="stat-num" id="sCount-high">0</div><div class="stat-label">HIGH</div></div>
-        <div class="stat-card yellow"><div class="stat-num" id="sCount-medium">0</div><div class="stat-label">MEDIUM</div></div>
-        <div class="stat-card blue"><div class="stat-num" id="sCount-total">0</div><div class="stat-label">TOTAL</div></div>
-      </div>
-
-      <div class="section-title">Select a CVE to Analyze</div>
-      <div class="cve-grid" id="cveGrid"></div>
-
-      <div class="action-bar">
-        <button class="btn btn-primary" id="analyzeBtn" onclick="analyzeSelected()" disabled>
-          ⚡ Analyze with AI & Notify
-        </button>
-        <button class="btn" onclick="selectRandom()">🎲 Random Pick</button>
-        <span style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-right:auto" id="selLabel">No CVE selected</span>
-      </div>
-
-      <div id="analysisResult"></div>
-    </div>
-
-    <!-- Upload Panel -->
-    <div id="panel-upload" class="panel">
-      <div class="section-title">Upload JSON or CSV File</div>
-      <label class="upload-zone">
-        <div class="upload-icon">⬆</div>
-        <div class="upload-text">Drag a file here or click to browse</div>
-        <div class="upload-sub">test_cves.json · vulnerabilities.json · custom.csv</div>
-        <input type="file" id="fileInput" accept=".json,.csv" onchange="handleFile(this)">
-      </label>
-      <div id="uploadMsg"></div>
-
-      <div class="section-title" style="margin-top:24px">Or paste JSON directly</div>
-      <textarea class="code-input" id="manualJson" placeholder='[{"cve_id":"CVE-2024-9999","title":"Test Vuln","severity":"high","cvss_score":8.5,"affected_software":["nginx"],"hostname":"web-server-01"}]'></textarea>
-      <div style="margin-top:10px;display:flex;gap:8px">
-        <button class="btn btn-primary" onclick="parseManual()">✓ Import</button>
-        <button class="btn" onclick="loadSample()">← Load Sample</button>
-      </div>
-    </div>
-
-    <!-- Dashboard Panel -->
-    <div id="panel-dashboard" class="panel">
-      <div class="section-title">Overview</div>
-      <div class="stats-row" id="dashStats"></div>
-      <div class="section-title" style="margin-top:8px">Sent Notifications</div>
-      <div class="result-block" style="padding:0;overflow:hidden">
-        <div id="notifList"></div>
-      </div>
-    </div>
-
-    <!-- Assets Panel -->
-    <div id="panel-assets" class="panel">
-      <div class="section-title">Asset Database</div>
-      <div id="assetsList"></div>
-    </div>
-  </main>
+    <div id="mode-desc" style="font-size:10px;color:#475569;margin-top:4px">Confirm before sending</div>
+  </div>
+  <div class="nav-item active" onclick="showPage('dashboard', this)">
+    <span>📊</span> Dashboard
+  </div>
+  <div class="nav-item" onclick="showPage('vulns', this)">
+    <span>⚠️</span> Vulnerabilities
+  </div>
+  <div class="nav-item" onclick="showPage('ingest', this)">
+    <span>➕</span> Add CVE
+  </div>
+  <div class="nav-item" onclick="showPage('notifications', this)">
+    <span>🔔</span> Notifications
+  </div>
+  <div class="nav-item" onclick="showPage('assets', this)">
+    <span>🖥️</span> Asset Inventory
+  </div>
+  <div class="nav-item" onclick="showPage('reports', this)">
+    <span>📊</span> Reports
+  </div>
+  <div class="nav-item" onclick="showPage('assetai', this)">
+    <span>🤖</span> AI Asset Manager
+  </div>
 </div>
 
-<script>
-const ASSETS = [
-  {id:"srv-001",name:"web-server-prod-01",software:["nginx/1.24.0","openssl/3.0.2"],owner_name:"Alex Reynolds",owner_email:"alex.reynolds@company.com",owner_slack:"@alex.reynolds",team:"infrastructure",ip:"10.0.1.10"},
-  {id:"srv-002",name:"api-gateway-01",software:["kong/3.6.0","openssl/3.0.2","nodejs/20.0.0"],owner_name:"Sarah Mitchell",owner_email:"sarah.mitchell@company.com",owner_slack:"@sarah.mitchell",team:"backend",ip:"10.0.1.20"},
-  {id:"srv-003",name:"db-postgres-01",software:["postgresql/16.1"],owner_name:"David Kim",owner_email:"david.kim@company.com",owner_slack:"@david.kim",team:"data",ip:"10.0.2.10"},
-  {id:"app-001",name:"crm-app",software:["log4j/2.14.1","spring-boot/2.7.0","java/17"],owner_name:"Laura Bennett",owner_email:"laura.bennett@company.com",owner_slack:"@laura.bennett",team:"crm-team"},
-  {id:"srv-004",name:"dev-jenkins-01",software:["jenkins/2.387.3","java/11","git/2.34.0"],owner_name:"James Wilson",owner_email:"james.wilson@company.com",owner_slack:"@james.wilson",team:"devops",ip:"10.0.3.10"},
-];
+<div class="main">
 
-const SAMPLE_CVES = [
-  {cve_id:"CVE-2021-44228",title:"Log4Shell — Apache Log4j2 Remote Code Execution",cvss_score:10.0,severity:"critical",affected_software:["log4j","java"],hostname:"app-server-crm",ip:"10.0.1.50",tags:["rce","java"]},
-  {cve_id:"CVE-2024-3400",title:"PAN-OS Command Injection in GlobalProtect",cvss_score:10.0,severity:"critical",affected_software:["panos","globalprotect"],hostname:"fw-edge-01",ip:"10.0.0.1",tags:["firewall","rce"]},
-  {cve_id:"CVE-2024-1234",title:"PostgreSQL Privilege Escalation via Row Security",cvss_score:8.1,severity:"high",affected_software:["postgresql","postgres"],hostname:"db-postgres-01",ip:"10.0.2.10",tags:["database"]},
-  {cve_id:"CVE-2024-5678",title:"Python urllib3 SSRF Vulnerability",cvss_score:5.5,severity:"medium",affected_software:["python","urllib3"],hostname:"dev-laptop-ali",tags:["ssrf","python"]},
-  {cve_id:"CVE-2023-44487",title:"HTTP/2 Rapid Reset Attack (DDoS)",cvss_score:7.5,severity:"high",affected_software:["nginx","http2"],hostname:"web-server-prod-01",ip:"10.0.1.10",tags:["ddos","web"]},
-];
+<!-- Dashboard -->
+<div class="page active" id="page-dashboard">
+  <div class="page-title">Dashboard</div>
+  <div class="demo-banner" id="status-banner">⏳ Loading system status...</div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Total Vulnerabilities</div><div class="stat-value" id="stat-total">—</div></div>
+    <div class="stat-card"><div class="stat-label">Critical</div><div class="stat-value" style="color:#f87171" id="stat-critical">—</div></div>
+    <div class="stat-card"><div class="stat-label">Notified</div><div class="stat-value" style="color:#4ade80" id="stat-notified">—</div></div>
+    <div class="stat-card"><div class="stat-label">Notifications Sent</div><div class="stat-value" style="color:#818cf8" id="stat-notifs">—</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Recent Vulnerabilities</h3></div>
+    <table>
+      <thead><tr><th>CVE ID</th><th>Title</th><th>Severity</th><th>Status</th><th>Ingested</th><th>Action</th></tr></thead>
+      <tbody id="dashboard-table"><tr><td colspan="6" class="loading">Loading...<div class="spinner"></div></td></tr></tbody>
+    </table>
+  </div>
+</div>
 
-let allCves = [...SAMPLE_CVES];
-let selectedId = null;
-let notifications = [];
+<!-- Vulnerabilities -->
+<div class="page" id="page-vulns">
+  <div class="page-title">Vulnerabilities</div>
+  <div class="card">
+    <div class="card-header">
+      <h3>All Vulnerabilities</h3>
+      <select id="filter-status" onchange="loadVulns()" style="background:#141620;border:1px solid #2d3148;color:#e2e8f0;padding:5px 10px;border-radius:6px;font-size:12px">
+        <option value="">All Statuses</option>
+        <option value="new">New</option>
+        <option value="notified">Notified</option>
+        <option value="resolved">Resolved</option>
+      </select>
+    </div>
+    <table>
+      <thead><tr><th>CVE ID</th><th>Title</th><th>Severity</th><th>CVSS</th><th>Affected Software</th><th>Status</th><th>Source</th><th>Action</th></tr></thead>
+      <tbody id="vulns-table"><tr><td colspan="8" class="loading">Loading...<div class="spinner"></div></td></tr></tbody>
+    </table>
+  </div>
+</div>
 
-const panelNames = {process:'Process CVE',upload:'Upload File',dashboard:'Dashboard',assets:'Assets'};
+<!-- Add CVE -->
+<div class="page" id="page-ingest">
+  <div class="page-title">Add Vulnerability</div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('manual', this)">Manual Entry</div>
+    <div class="tab" onclick="switchTab('nvd', this)">Fetch from NVD</div>
+    <div class="tab" onclick="switchTab('upload', this)">Upload File</div>
+  </div>
 
-function showPanel(name) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active',['process','upload','dashboard','assets'][i]===name));
-  document.getElementById('panel-'+name).classList.add('active');
-  document.getElementById('panelName').textContent = panelNames[name];
-  if(name==='dashboard') renderDashboard();
-  if(name==='assets') renderAssets();
-}
-
-function updateStats() {
-  const bySev = {};
-  allCves.forEach(c => bySev[c.severity]=(bySev[c.severity]||0)+1);
-  ['critical','high','medium'].forEach(s => {
-    const el = document.getElementById('sCount-'+s);
-    if(el) el.textContent = bySev[s]||0;
-  });
-  const tot = document.getElementById('sCount-total');
-  if(tot) tot.textContent = allCves.length;
-  const badge = document.getElementById('navBadge');
-  if(badge) badge.textContent = allCves.length;
-}
-
-function renderCveGrid() {
-  updateStats();
-  document.getElementById('cveGrid').innerHTML = allCves.map(c => `
-    <div class="cve-card${selectedId===c.cve_id?' selected':''}" onclick="selectCve('${c.cve_id}')">
-      <div class="cve-top">
-        <span class="cve-id">${c.cve_id}</span>
-        <span class="badge b-${c.severity}">${c.severity.toUpperCase()} ${c.cvss_score}</span>
+  <div id="tab-manual" class="card" style="padding:20px">
+    <div class="form-row">
+      <div class="form-group"><label>CVE ID *</label><input id="m-cve" placeholder="CVE-2024-XXXX" /></div>
+      <div class="form-group"><label>Title</label><input id="m-title" placeholder="Short vulnerability title" /></div>
+    </div>
+    <div class="form-group"><label>Description</label><textarea id="m-desc" rows="3" placeholder="Describe the vulnerability..."></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>CVSS Score</label><input id="m-cvss" type="number" step="0.1" min="0" max="10" placeholder="0.0 – 10.0" /></div>
+      <div class="form-group"><label>Severity Override</label>
+        <select id="m-severity">
+          <option value="">Auto from CVSS</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
       </div>
-      <div class="cve-title">${c.title}</div>
-      <div class="cve-meta">
-        <span>⬡ ${c.hostname||'unknown'}</span>
-        <span>▸ ${(c.affected_software||[]).slice(0,2).join(', ')}</span>
-      </div>
-    </div>`).join('');
-}
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>IP Address</label><input id="m-ip" placeholder="10.0.0.1" /></div>
+      <div class="form-group"><label>Hostname</label><input id="m-hostname" placeholder="server-name" /></div>
+    </div>
+    <div class="form-group"><label>Affected Software (comma-separated)</label><input id="m-sw" placeholder="nginx, openssl, log4j" /></div>
+    <button class="btn btn-primary" onclick="submitManual()">Submit &amp; Process →</button>
+  </div>
 
-function selectCve(id) {
-  selectedId = id;
-  renderCveGrid();
-  document.getElementById('analyzeBtn').disabled = false;
-  document.getElementById('selLabel').textContent = id + ' selected';
-  document.getElementById('analysisResult').innerHTML = '';
-}
+  <div id="tab-nvd" class="card" style="padding:20px;display:none">
+    <div class="form-group"><label>CVE ID</label><input id="n-cve" placeholder="e.g. CVE-2021-44228 (Log4Shell)" /></div>
+    <p style="font-size:12px;color:#64748b;margin-bottom:12px">Fetches full details directly from the NVD database including CVSS score, description, and CPE data.</p>
+    <button class="btn btn-primary" onclick="submitNVD()">Fetch from NVD →</button>
+    <div id="nvd-result" style="margin-top:16px"></div>
+  </div>
 
-function selectRandom() {
-  const c = allCves[Math.floor(Math.random()*allCves.length)];
-  selectCve(c.cve_id);
-}
+  <div id="tab-upload" class="card" style="padding:20px;display:none">
+    <div style="border:2px dashed #2d3148;border-radius:8px;padding:32px;text-align:center;cursor:pointer" onclick="document.getElementById('file-input').click()">
+      <div style="font-size:32px;margin-bottom:8px">📁</div>
+      <div style="font-size:13px;color:#94a3b8">Drop a JSON or CSV file here, or click to browse</div>
+      <div style="font-size:11px;color:#475569;margin-top:6px">CSV columns: cve_id, title, description, cvss_score, severity, affected_software, ip, hostname</div>
+      <input type="file" id="file-input" accept=".json,.csv" style="display:none" onchange="uploadFile(this)">
+    </div>
+    <div id="upload-result" style="margin-top:16px"></div>
+  </div>
+</div>
 
-function resolveOwner(cve) {
-  const matches = [];
-  for(const asset of ASSETS) {
-    let hit = false;
-    if(cve.ip && asset.ip === cve.ip) hit = true;
-    if(!hit && cve.hostname) {
-      const parts = asset.name.split('-').slice(0,-1).join('-');
-      if(cve.hostname.toLowerCase().includes(parts)) hit = true;
-    }
-    if(!hit) {
-      for(const sw of (cve.affected_software||[])) {
-        for(const inst of asset.software) {
-          const pkg = inst.split('/')[0].toLowerCase();
-          if(pkg.includes(sw.toLowerCase())||sw.toLowerCase().includes(pkg)){hit=true;break;}
-        }
-        if(hit) break;
-      }
-    }
-    if(hit) matches.push(asset);
-  }
-  return matches;
-}
+<!-- Notifications -->
+<div class="page" id="page-notifications">
+  <div class="page-title">Notification History</div>
+  <div class="card">
+    <div class="card-header"><h3>All Notifications</h3></div>
+    <table>
+      <thead><tr><th>CVE</th><th>Title</th><th>Severity</th><th>Detection Method</th><th>Recipients</th><th>Sent At</th><th>Confirmation</th></tr></thead>
+      <tbody id="notifs-table"><tr><td colspan="7" class="loading">Loading...<div class="spinner"></div></td></tr></tbody>
+    </table>
+  </div>
+</div>
 
-function guessTeams(cve) {
-  const tags = [...(cve.affected_software||[]),...(cve.tags||[])].map(t=>t.toLowerCase());
-  const teams = [];
-  if(tags.some(t=>['nginx','web','http','apache','http2'].includes(t))) teams.push('infrastructure');
-  if(tags.some(t=>['postgres','mysql','db','database'].includes(t))) teams.push('data');
-  if(tags.some(t=>['java','spring','log4j','python','nodejs'].includes(t))) teams.push('backend');
-  if(tags.some(t=>['jenkins','ci','devops','git'].includes(t))) teams.push('devops');
-  if(teams.length===0) teams.push('security','infrastructure');
-  return [...new Set(teams)];
-}
+<!-- Assets -->
+<div class="page" id="page-assets">
+  <div class="page-title">Asset Inventory</div>
+  <div class="card">
+    <div class="card-header"><h3>Registered Assets</h3>
+      <span style="font-size:12px;color:#64748b">Owner lookup is performed against this list first</span>
+    </div>
+    <table>
+      <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>IP</th><th>Software</th><th>Owner</th><th>Team</th><th>Environment</th></tr></thead>
+      <tbody id="assets-table"><tr><td colspan="8" class="loading">Loading...<div class="spinner"></div></td></tr></tbody>
+    </table>
+  </div>
+</div>
 
-function buildEmail(cve, asset, llmTeams) {
-  const emo = {critical:'🔴',high:'🟠',medium:'🟡',low:'🟢'}[cve.severity]||'⚠️';
-  const to = asset ? asset.owner_name : (llmTeams[0]||'security') + ' team';
-  const assetInfo = asset ? `Asset: ${asset.name} (${asset.ip||'IP unknown'})` : `Suggested Teams: ${llmTeams.join(', ')}`;
-  return `${emo} [${cve.severity.toUpperCase()}] New Vulnerability: ${cve.cve_id}
 
-Hello ${to},
 
-A ${cve.severity} severity vulnerability has been detected on systems under your responsibility.
+<!-- AI Asset Manager Page -->
+<div class="page flex-page" id="page-assetai"
+     style="flex:1;display:flex;flex-direction:column;min-height:0;padding-bottom:0">
+    <div class="page-title" style="margin:0">🤖 AI Asset Manager</div>
+    <div style="display:flex;gap:8px">
+      <label style="font-size:12px;color:#94a3b8;cursor:pointer;background:#1a1d27;border:1px solid #2d3148;padding:6px 12px;border-radius:6px;display:flex;align-items:center;gap:6px" onclick="document.getElementById('ai-file-input').click()">
+        📁 Import CSV / Excel
+      </label>
+      <input type="file" id="ai-file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="importAssetFile(this)">
+      <button class="btn btn-sm" style="background:#1e2235;color:#94a3b8;border:1px solid #2d3148" onclick="clearChat()">Clear chat</button>
+    </div>
+  </div>
 
-────────────────────────────
-CVE ID     : ${cve.cve_id}
-Title      : ${cve.title}
-CVSS Score : ${cve.cvss_score} (${cve.severity.toUpperCase()})
-${assetInfo}
-────────────────────────────
+  <div style="flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;min-height:0">
 
-Please apply a patch or mitigation as soon as possible.
-Reply to confirm receipt: "confirmed" | "in_progress" | "patched"
+    <!-- Chat column -->
+    <div style="display:flex;flex-direction:column;min-height:0;min-width:0;background:#1a1d27;border:1px solid #2d3148;border-radius:10px;overflow:hidden">
 
-Best regards,
-Security Team`;
-}
-
-async function analyzeSelected() {
-  if(!selectedId) return;
-  const cve = allCves.find(c=>c.cve_id===selectedId);
-  const btn = document.getElementById('analyzeBtn');
-  btn.disabled = true;
-  btn.textContent = '...';
-
-  document.getElementById('analysisResult').innerHTML = `
-    <div class="loading">
-      <div class="lds"><span></span><span></span><span></span></div>
-      Searching asset database<span class="blink">_</span>
-    </div>`;
-
-  await new Promise(r=>setTimeout(r,900));
-
-  const matched = resolveOwner(cve);
-  const method = matched.length > 0 ? 'asset_db' : 'llm_suggestion';
-  const llmTeams = matched.length === 0 ? guessTeams(cve) : [];
-  const emailBody = buildEmail(cve, matched[0]||null, llmTeams);
-
-  notifications.push({
-    id:'n-'+Date.now(), cve_id:cve.cve_id, severity:cve.severity,
-    method, assets:matched, teams:llmTeams, email:emailBody,
-    sent_at:new Date().toISOString(),
-    to: matched.length>0 ? matched[0].owner_email : llmTeams[0]+'@company.com'
-  });
-
-  const ownersHtml = matched.length > 0
-    ? matched.map(a=>`
-        <div class="owner-card">
-          <div class="avatar">${a.owner_name.split(' ').map(n=>n[0]).join('')}</div>
-          <div class="owner-info">
-            <div class="owner-name">${a.owner_name}</div>
-            <div class="owner-detail">${a.owner_email} · ${a.owner_slack}</div>
-          </div>
-          <span class="asset-tag">◈ ${a.name}</span>
-          <span class="team-tag">${a.team}</span>
-        </div>`).join('')
-    : llmTeams.map(t=>`<span class="team-tag">⚙ ${t}</span>`).join('');
-
-  document.getElementById('analysisResult').innerHTML = `
-    <div class="result-section">
-      <div class="result-block">
-        <h3><span class="dot dot-green"></span>Analysis Result — ${cve.cve_id}</h3>
-        <div class="info-row"><span class="info-key">Detection Method</span><span class="info-val">${method==='asset_db'?'◈ Asset Database (exact match)':'⚙ AI Suggestion (fuzzy match)'}</span></div>
-        <div class="info-row"><span class="info-key">Severity</span><span class="badge b-${cve.severity}">${cve.severity.toUpperCase()} ${cve.cvss_score}</span></div>
-        <div class="info-row"><span class="info-key">hostname</span><span class="info-val" style="font-family:var(--mono);font-size:11px">${cve.hostname||'—'}</span></div>
-        <div class="info-row"><span class="info-key">Affected Software</span><span class="info-val">${(cve.affected_software||[]).join(', ')}</span></div>
-      </div>
-      <div class="result-block">
-        <h3><span class="dot dot-blue"></span>Owner / Notification Recipient</h3>
-        ${ownersHtml}
-      </div>
-      <div class="result-block">
-        <h3><span class="dot dot-orange"></span>Simulated Email</h3>
-        <div class="email-preview">${emailBody}</div>
-        <div class="email-sent">✓ Email sent to ${matched.length>0?matched[0].owner_email:llmTeams[0]+'@company.com'} sent (simulated)</div>
-      </div>
-    </div>`;
-
-  btn.disabled = false;
-  btn.textContent = '⚡ Analyze with AI & Notify';
-}
-
-function handleFile(input) {
-  const file = input.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      let parsed = JSON.parse(e.target.result);
-      if(!Array.isArray(parsed)) parsed = [parsed];
-      const added = parsed.filter(c=>c.cve_id&&!allCves.find(x=>x.cve_id===c.cve_id));
-      allCves = [...allCves, ...added];
-      renderCveGrid();
-      document.getElementById('uploadMsg').innerHTML = `<div class="email-sent" style="margin-top:10px">✓ ${added.length} new CVEs added. Go to "Process CVE" tab</div>`;
-    } catch(err) {
-      document.getElementById('uploadMsg').innerHTML = `<p style="color:var(--red);font-size:12px;margin-top:10px">Error: ${err.message}</p>`;
-    }
-  };
-  reader.readAsText(file);
-}
-
-function parseManual() {
-  const text = document.getElementById('manualJson').value.trim();
-  if(!text) return;
-  try {
-    let parsed = JSON.parse(text);
-    if(!Array.isArray(parsed)) parsed = [parsed];
-    const added = parsed.filter(c=>c.cve_id&&!allCves.find(x=>x.cve_id===c.cve_id));
-    allCves = [...allCves, ...added];
-    renderCveGrid();
-    document.getElementById('manualJson').value = '';
-    document.getElementById('uploadMsg').innerHTML = `<div class="email-sent" style="margin-top:10px">✓ ${added.length} CVEs imported.</div>`;
-    showPanel('process');
-  } catch(err) { alert('Invalid JSON: '+err.message); }
-}
-
-function loadSample() {
-  document.getElementById('manualJson').value = JSON.stringify([
-    {"cve_id":"CVE-2024-TEST","title":"Sample Test Vulnerability","severity":"high","cvss_score":8.0,"affected_software":["openssl"],"hostname":"api-gateway-01"}
-  ], null, 2);
-}
-
-function renderDashboard() {
-  const bySev = {};
-  allCves.forEach(c=>bySev[c.severity]=(bySev[c.severity]||0)+1);
-  document.getElementById('dashStats').innerHTML = `
-    <div class="stat-card red"><div class="stat-num">${bySev.critical||0}</div><div class="stat-label">CRITICAL</div></div>
-    <div class="stat-card orange"><div class="stat-num">${bySev.high||0}</div><div class="stat-label">HIGH</div></div>
-    <div class="stat-card blue"><div class="stat-num">${notifications.length}</div><div class="stat-label">SENT</div></div>
-    <div class="stat-card"><div class="stat-num">${allCves.length}</div><div class="stat-label">TOTAL CVE</div></div>
-  `;
-  const list = document.getElementById('notifList');
-  if(!notifications.length) {
-    list.innerHTML = `<div style="padding:20px;font-family:var(--mono);font-size:11px;color:var(--text3)">No notifications sent yet_</div>`;
-    return;
-  }
-  list.innerHTML = [...notifications].reverse().map(n=>`
-    <div class="notif-row">
-      <span class="notif-cve">${n.cve_id}</span>
-      <span style="font-size:12px;color:var(--text2)">${n.to}</span>
-      <span class="badge b-${n.severity}">${n.severity}</span>
-      <span class="notif-time">${new Date(n.sent_at).toLocaleTimeString('fa-IR')}</span>
-    </div>`).join('');
-}
-
-function renderAssets() {
-  document.getElementById('assetsList').innerHTML = ASSETS.map(a=>`
-    <div class="result-block" style="margin-bottom:10px">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div class="avatar">${a.owner_name.split(' ').map(n=>n[0]).join('')}</div>
-        <div style="flex:1">
-          <div style="font-family:var(--mono);font-size:12px;color:var(--accent2)">${a.name}</div>
-          <div style="font-size:12px;color:var(--text2);margin-top:2px">${a.owner_name} · ${a.owner_email}</div>
+      <!-- Messages area -->
+      <div id="chat-messages" style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;padding:16px;display:flex;flex-direction:column;gap:10px">
+        <div style="background:#1e2235;border-radius:8px;padding:12px 14px;font-size:13px;color:#94a3b8;max-width:85%;line-height:1.7">
+          Hi! I'm your AI Asset Manager.<br><br>
+          <strong style="color:#e2e8f0">Add assets:</strong> "Add server web-01, IP 10.0.1.5, owner John, nginx installed"<br>
+          <strong style="color:#e2e8f0">Update:</strong> "Change owner of db-postgres-01 to Alice"<br>
+          <strong style="color:#e2e8f0">Query:</strong> "Which assets does the infra team own?"<br>
+          <strong style="color:#e2e8f0">Import:</strong> Click "Import CSV / Excel" above<br>
+          <strong style="color:#e2e8f0">Correct:</strong> "No, that server belongs to backend team"
         </div>
-        <span class="team-tag">${a.team}</span>
-        ${a.ip?`<span class="asset-tag">${a.ip}</span>`:''}
       </div>
-      <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px">
-        ${a.software.map(s=>`<span class="asset-tag">${s}</span>`).join('')}
+
+      <!-- Input bar -->
+      <div style="padding:12px;border-top:1px solid #2d3148;display:flex;gap:8px;background:#141620;flex-shrink:0">
+        <input id="chat-input"
+          placeholder="Type a message... (Enter to send)"
+          style="flex:1;background:#1a1d27;border:1px solid #4f46e5;border-radius:6px;padding:10px 14px;color:#e2e8f0;font-size:13px;outline:none"
+          autocomplete="off"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}">
+        <button class="btn btn-primary" onclick="sendChat()" id="send-btn" style="white-space:nowrap">Send →</button>
       </div>
+    </div>
+
+    <!-- Right panel -->
+    <div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;min-height:0">
+
+      <!-- Asset list -->
+      <div style="background:#1a1d27;border:1px solid #2d3148;border-radius:10px;overflow:hidden;flex-shrink:0">
+        <div style="padding:12px 16px;border-bottom:1px solid #2d3148;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;font-weight:600">Asset Inventory</span>
+          <span id="asset-count" style="font-size:11px;color:#64748b"></span>
+        </div>
+        <div id="ai-asset-list" style="max-height:320px;overflow-y:auto"></div>
+      </div>
+
+      <!-- Confirm panel -->
+      <div id="confirm-panel" style="display:none;background:#2d1515;border:1px solid #7f1d1d;border-radius:10px;overflow:hidden">
+        <div style="padding:12px 16px;border-bottom:1px solid #7f1d1d">
+          <span style="font-size:13px;font-weight:600;color:#fca5a5">⚠️ Confirm Action</span>
+        </div>
+        <div id="confirm-content" style="padding:14px;font-size:13px"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Reports Page -->
+<div class="page" id="page-reports">
+  <div class="page-title">Reports & Analysis</div>
+
+  <!-- Flagged section -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header">
+      <h3>⚠️ Flagged — Needs Review</h3>
+      <span style="font-size:12px;color:#64748b">Low confidence · Reporter≠Owner · No DB match</span>
+    </div>
+    <div id="flagged-list"><div class="loading">Loading...<div class="spinner"></div></div></div>
+  </div>
+
+  <!-- Download report -->
+  <div class="card" style="padding:20px">
+    <h3 style="font-size:14px;margin-bottom:12px">📥 Download Excel Report</h3>
+    <p style="font-size:13px;color:#94a3b8;margin-bottom:16px">
+      Full report with 3 sheets: Summary · All Notifications · ⚠️ Needs Review
+    </p>
+    <button class="btn btn-primary" onclick="downloadReport()">Download Excel Report</button>
+    <span id="report-status" style="font-size:12px;color:#64748b;margin-left:12px"></span>
+  </div>
+</div>
+</div>
+<!-- Process Result Modal -->
+<div id="process-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center">
+  <div style="background:#1a1d27;border:1px solid #2d3148;border-radius:12px;padding:24px;width:580px;max-height:82vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="font-size:16px">Processing Result</h3>
+      <button onclick="closeModal()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px">✕</button>
+    </div>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = window.location.origin + '/api';
+
+async function api(path, opts={}) {
+  const r = await fetch(API + path, opts);
+  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.detail || 'Request failed'); }
+  return r.json();
+}
+
+function toast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (ok ? 'ok' : 'err');
+  setTimeout(() => t.className = 'toast', 3200);
+}
+
+function severityBadge(s) { return `<span class="badge badge-${s||'unknown'}">${(s||'unknown').toUpperCase()}</span>`; }
+function statusBadge(s) { return `<span class="badge badge-${s||'new'}">${s||'new'}</span>`; }
+function methodBadge(m) {
+  const l = {asset_db:'📁 Asset DB', llm:'🤖 LLM (AI)', unresolved:'❓ Unresolved'};
+  return `<span class="badge method-${m}">${l[m]||m}</span>`;
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleString('en-GB', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+async function loadDashboard() {
+  try {
+    const [stats, vulns] = await Promise.all([api('/stats'), api('/vulnerabilities?limit=10')]);
+    document.getElementById('stat-total').textContent = stats.total_vulns;
+    document.getElementById('stat-critical').textContent = stats.by_severity?.critical || 0;
+    document.getElementById('stat-notified').textContent = stats.by_status?.notified || 0;
+    document.getElementById('stat-notifs').textContent = stats.total_notifications;
+    const tb = document.getElementById('dashboard-table');
+    if (!vulns.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">No vulnerabilities yet — add one from "Add CVE"</td></tr>'; return; }
+    tb.innerHTML = vulns.map(v => `<tr>
+      <td><code style="color:#818cf8;font-size:12px">${v.cve_id}</code></td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.title||'—'}</td>
+      <td>${severityBadge(v.severity)}</td>
+      <td>${statusBadge(v.status)}</td>
+      <td style="font-size:11px;color:#64748b">${fmtDate(v.ingested_at)}</td>
+      <td><button class="btn btn-sm btn-process" onclick="processVuln('${v.cve_id}')">Process →</button></td>
+    </tr>`).join('');
+  } catch(e) {
+    document.getElementById('dashboard-table').innerHTML = `<tr><td colspan="6" class="empty" style="color:#f87171">Cannot reach backend at localhost:8000</td></tr>`;
+  }
+}
+
+async function loadVulns() {
+  const status = document.getElementById('filter-status')?.value || '';
+  try {
+    const vulns = await api('/vulnerabilities' + (status ? `?status=${status}` : ''));
+    const tb = document.getElementById('vulns-table');
+    if (!vulns.length) { tb.innerHTML = '<tr><td colspan="8" class="empty">No results</td></tr>'; return; }
+    tb.innerHTML = vulns.map(v => `<tr>
+      <td><code style="color:#818cf8;font-size:12px">${v.cve_id}</code></td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${v.title||'—'}</td>
+      <td>${severityBadge(v.severity)}</td>
+      <td style="font-family:monospace;font-size:12px">${v.cvss_score??'—'}</td>
+      <td>${(v.affected_software||[]).slice(0,3).map(s=>`<span class="chip">${s}</span>`).join('')}</td>
+      <td>${statusBadge(v.status)}</td>
+      <td style="font-size:11px;color:#64748b">${v.source||'—'}</td>
+      <td><button class="btn btn-sm btn-process" onclick="processVuln('${v.cve_id}')">Process →</button></td>
+    </tr>`).join('');
+  } catch(e) { document.getElementById('vulns-table').innerHTML = `<tr><td colspan="8" class="empty" style="color:#f87171">${e.message}</td></tr>`; }
+}
+
+async function processVuln(cveId) {
+  const modal = document.getElementById('process-modal');
+  const content = document.getElementById('modal-content');
+  modal.style.display = 'flex';
+  content.innerHTML = '<div class="loading">Identifying owner and sending notifications...<div class="spinner"></div></div>';
+  try {
+    // Auto mode: send directly. Manual mode: show confirm first
+    if (!AUTO_MODE && !confirm(`Process ${cveId} and send notifications?\n\nAuto mode is OFF — click OK to confirm.`)) {
+      closeModal(); return;
+    }
+    const res = await api('/process', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({cve_id: cveId, send_notification: true})
+    });
+    const r = res.resolution;
+    const llm = r.llm_suggestion || {};
+
+    // ── Layer badge ──────────────────────────────────────────────
+    const layerInfo = {
+      software_vendor_responsibility: { label:'🏢 Software Vendor → Responsible Team', color:'#1e3a5f', border:'#1e40af', text:'#60a5fa' },
+      asset_owner_responsibility:     { label:'🖥️ Asset Owner',                         color:'#0d2d1a', border:'#14532d', text:'#4ade80' },
+      user_owner_responsibility:      { label:'👤 User Owned (Authorized)',              color:'#2d1d08', border:'#713f12', text:'#fbbf24' },
+    };
+    const layer = r.ownership_layer || 'asset_owner_responsibility';
+    const li = layerInfo[layer] || layerInfo.asset_owner_responsibility;
+
+    // ── Actual owner block ───────────────────────────────────────
+    const owner = r.actual_owner || {};
+    const ownerHtml = `
+      <div style="background:${li.color};border:1px solid ${li.border};border-radius:8px;padding:12px;margin-bottom:8px">
+        <div style="font-size:11px;color:#64748b;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Responsible Party</div>
+        <div style="font-size:14px;font-weight:600;color:${li.text}">${owner.name || '—'}</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:3px">
+          📧 ${owner.email||'—'} &nbsp;·&nbsp; 💬 ${owner.slack||'—'}
+        </div>
+        ${owner.team_id ? `<div style="font-size:11px;color:#475569;margin-top:2px">Team: ${owner.team_id}</div>` : ''}
+      </div>`;
+
+    // ── Reasoning steps ──────────────────────────────────────────
+    const steps = llm.reasoning_steps || [];
+    const reasoningHtml = steps.length ? `
+      <div style="background:#141620;border-radius:8px;padding:12px;margin-bottom:8px">
+        <div style="font-size:11px;color:#64748b;margin-bottom:6px;text-transform:uppercase">AI Reasoning</div>
+        ${steps.map((s,i) => `<div style="font-size:12px;color:#94a3b8;padding:2px 0"><span style="color:#475569">${i+1}.</span> ${s}</div>`).join('')}
+      </div>` : '';
+
+    // ── Reporter acknowledgement ─────────────────────────────────
+    const reporterHtml = r.reporter_message ? `
+      <div style="background:#1a1020;border:1px solid #4c1d95;border-radius:8px;padding:12px;margin-bottom:8px">
+        <div style="font-size:11px;color:#a78bfa;margin-bottom:4px;text-transform:uppercase">📨 Auto-reply to Reporter</div>
+        <div style="font-size:12px;color:#94a3b8"><strong>${r.reporter_message.to_name}</strong> (${r.reporter_message.to_email})</div>
+        <div style="font-size:11px;color:#64748b;margin-top:4px;font-style:italic">"${r.reporter_message.message.slice(0,120)}..."</div>
+      </div>` : '';
+
+    const notif = res.notification || {};
+    const emailOk = (notif.email||[]).filter(e=>e.ok).length;
+    const slackOk = (notif.slack||[]).filter(s=>s.ok).length;
+
+    content.innerHTML = `
+      <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px">
+        <code style="color:#818cf8;font-size:15px">${cveId}</code>
+        ${severityBadge(res.vuln?.severity)}
+      </div>
+
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:#64748b;margin-bottom:5px;text-transform:uppercase">Ownership Layer</div>
+        <div style="background:${li.color};border:1px solid ${li.border};border-radius:6px;padding:7px 12px;font-size:12px;color:${li.text};font-weight:600">${li.label}</div>
+        <div style="font-size:11px;color:#64748b;margin-top:4px;padding:0 4px">${llm.layer_reasoning||''}</div>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:#64748b;margin-bottom:5px;text-transform:uppercase">Responsible Owner</div>
+        ${ownerHtml}
+      </div>
+
+      ${reasoningHtml}
+      ${reporterHtml}
+
+      <div style="background:#141620;border-radius:8px;padding:12px;font-size:12px;line-height:1.9">
+        <div style="color:#64748b;margin-bottom:4px;font-size:11px;text-transform:uppercase">Notification Status</div>
+        <div>📧 Email to owner: ${emailOk > 0 ? `<span style="color:#4ade80">Sent (${emailOk})</span>` : '<span style="color:#475569">Not configured</span>'}</div>
+        <div>💬 Slack to owner: ${slackOk > 0 ? `<span style="color:#4ade80">Sent (${slackOk})</span>` : '<span style="color:#475569">Not configured</span>'}</div>
+        ${r.reporter_message ? `<div>📨 Reporter notified: <span style="color:#a78bfa">Auto-reply queued</span></div>` : ''}
+        <div>📊 Dashboard: <span style="color:#4ade80">Recorded & Tracking started</span></div>
+      </div>`;
+    toast(`✅ ${cveId} processed`);
+    loadDashboard();
+  } catch(e) {
+    const errMsg = e.message || 'Unknown error';
+    const tip = errMsg.includes('LLM') ? 'Try setting LLM_PROVIDER=demo in .env' :
+                errMsg.includes('connect') ? 'Make sure the server is running' : '';
+    content.innerHTML = `
+      <div style="background:#3b1515;border:1px solid #7f1d1d;border-radius:8px;padding:16px">
+        <div style="color:#f87171;font-weight:500;margin-bottom:6px">❌ ${errMsg}</div>
+        ${tip ? `<div style="color:#94a3b8;font-size:12px">💡 ${tip}</div>` : ''}
+        <button class="btn btn-sm btn-process" style="margin-top:10px" onclick="processVuln('${cveId}')">Retry →</button>
+      </div>`;
+    toast('Error: ' + errMsg, false);
+  }
+}
+
+function closeModal() { document.getElementById('process-modal').style.display = 'none'; }
+
+async function loadNotifications() {
+  try {
+    const notifs = await api('/notifications');
+    const tb = document.getElementById('notifs-table');
+    if (!notifs.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">No notifications sent yet</td></tr>'; return; }
+    tb.innerHTML = notifs.map(n => `<tr>
+      <td><code style="color:#818cf8;font-size:12px">${n.vuln_id}</code></td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${n.vuln_title||'—'}</td>
+      <td>${severityBadge(n.severity)}</td>
+      <td>${methodBadge(n.resolution_method)}</td>
+      <td>${(n.recipients||[]).map(r=>`<span class="chip">${r.name||r.email||''}</span>`).join('')}</td>
+      <td style="font-size:11px;color:#64748b">${fmtDate(n.sent_at)}</td>
+      <td>${n.needs_confirmation ? '<span class="badge badge-medium">Needs Confirmation</span>' : '<span class="badge badge-notified">Confirmed</span>'}</td>
+    </tr>`).join('');
+  } catch(e) { document.getElementById('notifs-table').innerHTML = `<tr><td colspan="7" class="empty" style="color:#f87171">${e.message}</td></tr>`; }
+}
+
+async function loadAssets() {
+  try {
+    const assets = await api('/assets');
+    const tb = document.getElementById('assets-table');
+    if (!assets.length) { tb.innerHTML = '<tr><td colspan="8" class="empty">No assets registered</td></tr>'; return; }
+    tb.innerHTML = assets.map(a => `<tr>
+      <td><code style="font-size:11px;color:#818cf8">${a.id}</code></td>
+      <td>${a.name}</td>
+      <td><span class="badge badge-unknown">${a.type}</span></td>
+      <td style="font-family:monospace;font-size:12px;color:#64748b">${a.ip||'—'}</td>
+      <td>${(a.software||[]).slice(0,3).map(s=>`<span class="chip">${s}</span>`).join('')}</td>
+      <td style="font-size:12px">${a.owner_name}<br><span style="color:#64748b;font-size:11px">${a.owner_email}</span></td>
+      <td><span class="chip">${a.team}</span></td>
+      <td><span class="badge badge-${a.env==='production'?'high':'low'}">${a.env}</span></td>
+    </tr>`).join('');
+  } catch(e) { document.getElementById('assets-table').innerHTML = `<tr><td colspan="8" class="empty" style="color:#f87171">${e.message}</td></tr>`; }
+}
+
+async function submitManual() {
+  const cveId = document.getElementById('m-cve').value.trim();
+  if (!cveId) { toast('CVE ID is required', false); return; }
+  const sw = document.getElementById('m-sw').value.trim();
+  const data = {
+    cve_id: cveId,
+    title: document.getElementById('m-title').value.trim(),
+    description: document.getElementById('m-desc').value.trim(),
+    cvss_score: parseFloat(document.getElementById('m-cvss').value) || null,
+    severity: document.getElementById('m-severity').value || null,
+    ip: document.getElementById('m-ip').value.trim() || null,
+    hostname: document.getElementById('m-hostname').value.trim() || null,
+    affected_software: sw ? sw.split(',').map(s=>s.trim()).filter(Boolean) : [],
+  };
+  try {
+    await api('/ingest/manual', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    toast('✅ Saved — opening processing result...');
+    processVuln(cveId);
+  } catch(e) { toast(e.message, false); }
+}
+
+async function submitNVD() {
+  const cveId = document.getElementById('n-cve').value.trim();
+  if (!cveId) { toast('Enter a CVE ID', false); return; }
+  const r = document.getElementById('nvd-result');
+  r.innerHTML = '<div class="loading">Fetching from NVD...<div class="spinner"></div></div>';
+  try {
+    const res = await api('/ingest/nvd', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cve_id:cveId})});
+    r.innerHTML = `<div style="background:#0d2d1a;border:1px solid #14532d;border-radius:8px;padding:12px;font-size:13px">
+      ✅ Fetched: <strong style="color:#4ade80">${res.vuln.cve_id}</strong> — ${(res.vuln.title||'').slice(0,80)}
+      <br><button class="btn btn-process btn-sm" style="margin-top:8px" onclick="processVuln('${res.vuln.cve_id}')">Process & Notify →</button>
+    </div>`;
+    toast('✅ Fetched from NVD');
+  } catch(e) {
+    r.innerHTML = `<div style="color:#f87171;font-size:13px">❌ ${e.message}</div>`;
+    toast(e.message, false);
+  }
+}
+
+async function uploadFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const r = document.getElementById('upload-result');
+  r.innerHTML = '<div class="loading">Uploading...<div class="spinner"></div></div>';
+  const form = new FormData(); form.append('file', file);
+  try {
+    const res = await api('/ingest/upload', {method:'POST',body:form});
+    r.innerHTML = `<div style="background:#0d2d1a;border:1px solid #14532d;border-radius:8px;padding:12px;font-size:13px">
+      ✅ ${res.count} vulnerabilit${res.count===1?'y':'ies'} imported successfully
+    </div>`;
+    toast(`✅ ${res.count} imported`);
+  } catch(e) {
+    r.innerHTML = `<div style="color:#f87171;font-size:13px">❌ ${e.message}</div>`;
+    toast(e.message, false);
+  }
+}
+
+function showPage(p, el) {
+  document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  if (el) el.classList.add('active');
+  if (p==='dashboard') loadDashboard();
+  else if (p==='vulns') loadVulns();
+  else if (p==='notifications') loadNotifications();
+  else if (p==='assets') loadAssets();
+}
+
+function switchTab(t, el) {
+  ['manual','nvd','upload'].forEach(id => document.getElementById('tab-'+id).style.display = id===t?'block':'none');
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+loadDashboard();
+
+// ── Auto/Manual Mode ─────────────────────────────────────────────
+let AUTO_MODE = false;
+
+async function loadMode() {
+  try {
+    const s = await api('/settings');
+    AUTO_MODE = s.auto_process || false;
+    updateModeUI();
+  } catch(e) {}
+}
+
+function updateModeUI() {
+  const toggle = document.getElementById('mode-toggle');
+  const knob   = document.getElementById('mode-knob');
+  const label  = document.getElementById('mode-label');
+  const desc   = document.getElementById('mode-desc');
+  if (!toggle) return;
+  if (AUTO_MODE) {
+    toggle.style.background = '#4f46e5';
+    knob.style.left = '18px';
+    label.style.color = '#818cf8';
+    label.textContent = 'Auto';
+    desc.textContent = 'Sends without confirmation';
+  } else {
+    toggle.style.background = '#334155';
+    knob.style.left = '2px';
+    label.style.color = '#94a3b8';
+    label.textContent = 'Manual';
+    desc.textContent = 'Confirm before sending';
+  }
+}
+
+async function toggleMode() {
+  AUTO_MODE = !AUTO_MODE;
+  updateModeUI();
+  await api('/settings', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({auto_process: AUTO_MODE})});
+  toast(AUTO_MODE ? '🤖 Auto mode ON — sends without confirmation' : '👤 Manual mode — confirm before sending');
+}
+
+// ── Reports & Flagged ─────────────────────────────────────────────
+async function loadReports() {
+  const el = document.getElementById('flagged-list');
+  if (!el) return;
+  try {
+    const flagged = await api('/report/flagged');
+    if (!flagged.length) {
+      el.innerHTML = '<div class="empty" style="color:#4ade80">✅ No suspicious notifications — all detections look good!</div>';
+      return;
+    }
+    const reasonColors = {
+      'Low confidence': '#fbbf24',
+      'No Asset DB match': '#fb923c',
+      'Reporter ≠ Owner': '#a78bfa',
+    };
+    el.innerHTML = '<table><thead><tr><th>CVE</th><th>Severity</th><th>Flag Reasons</th><th>LLM Reasoning</th><th>Suggested Owner</th><th>Action</th></tr></thead><tbody>' +
+      flagged.map(n => {
+        const reasons = n.flag_reasons || [];
+        const reasonBadges = reasons.map(r => {
+          const col = Object.entries(reasonColors).find(([k]) => r.includes(k));
+          const c = col ? col[1] : '#94a3b8';
+          return `<span style="background:#1e2235;border:1px solid ${c};color:${c};border-radius:4px;padding:2px 6px;font-size:10px;margin:1px;display:inline-block">${r}</span>`;
+        }).join('');
+        const llm = n.llm_suggestion || {};
+        const reasoning = llm.layer_reasoning || llm.reasoning || '';
+        const recips = n.recipients || [{}];
+        const owner = recips[0] || {};
+        const action = reasons.some(r=>r.includes('DB match')) ? 'Re-run LLM' :
+                       reasons.some(r=>r.includes('confidence')) ? 'Manual assign' : 'Verify';
+        return `<tr>
+          <td><code style="color:#818cf8;font-size:12px">${n.vuln_id}</code></td>
+          <td>${severityBadge(n.severity)}</td>
+          <td>${reasonBadges}</td>
+          <td style="font-size:11px;color:#94a3b8;max-width:200px">${reasoning.slice?.(0,100)||''}${reasoning.length>100?'…':''}</td>
+          <td style="font-size:12px">${owner.name||'—'}<br><span style="font-size:10px;color:#64748b">${owner.email||''}</span></td>
+          <td>
+            <button class="btn btn-sm btn-process" onclick="reprocessVuln('${n.vuln_id}')">${action}</button>
+          </td>
+        </tr>`;
+      }).join('') + '</tbody></table>';
+  } catch(e) {
+    el.innerHTML = `<div class="empty" style="color:#f87171">${e.message}</div>`;
+  }
+}
+
+async function reprocessVuln(cveId) {
+  toast(`🔄 Re-processing ${cveId}...`);
+  processVuln(cveId);
+}
+
+async function downloadReport() {
+  const el = document.getElementById('report-status');
+  el.textContent = 'Generating...';
+  try {
+    const resp = await fetch(API + '/report/excel');
+    if (!resp.ok) throw new Error('Failed');
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `vulnmgr_report_${new Date().toISOString().slice(0,10)}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+    el.textContent = '✅ Downloaded!';
+    setTimeout(() => el.textContent = '', 3000);
+  } catch(e) {
+    el.textContent = '❌ ' + e.message;
+    toast(e.message, false);
+  }
+}
+
+// ── Patch showPage to load reports ───────────────────────────────
+const _origShowPage = showPage;
+showPage = function(p, el) {
+  _origShowPage(p, el);
+  if (p === 'reports') loadReports();
+};
+
+loadMode();
+
+// ── AI Asset Manager ─────────────────────────────────────────────
+let _pendingAction = null;
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  appendMsg('user', msg);
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    const r = await api('/asset-manager/chat', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message: msg, session_id: 'main'})
+    });
+    handleChatResponse(r);
+  } catch(e) {
+    appendMsg('ai', '❌ Error: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = 'Send';
+}
+
+function handleChatResponse(r) {
+  const text = r.message || (r.saved ? `✅ ${r.saved} asset(s) saved.` : 'Done.');
+  appendMsg('ai', text, r);
+
+  if (r.action !== 'none' && r.assets?.length) {
+    if (r.needs_confirmation) {
+      showConfirm(r);
+    } else {
+      loadAiAssets();
+      toast(`✅ ${r.saved || r.assets.length} asset(s) updated`);
+    }
+  }
+  if (r.questions?.length) {
+    setTimeout(() => appendMsg('ai', '❓ ' + r.questions.join(' ')), 300);
+  }
+}
+
+function appendMsg(role, text, data) {
+  const box = document.getElementById('chat-messages');
+  const isUser = role === 'user';
+  const div = document.createElement('div');
+  div.style.cssText = `
+    background:${isUser ? '#1e3a5f' : '#1e2235'};
+    border-radius:8px;padding:10px 14px;font-size:13px;
+    color:${isUser ? '#93c5fd' : '#e2e8f0'};
+    max-width:85%;align-self:${isUser ? 'flex-end' : 'flex-start'};
+    line-height:1.6;white-space:pre-wrap;word-break:break-word
+  `;
+  div.textContent = text;
+
+  // Show assets inline if any
+  if (data?.assets?.length && !data.needs_confirmation) {
+    const badges = document.createElement('div');
+    badges.style.cssText = 'margin-top:8px;display:flex;flex-wrap:wrap;gap:4px';
+    data.assets.slice(0,5).forEach(a => {
+      const b = document.createElement('span');
+      b.className = 'chip';
+      b.style.color = '#4ade80';
+      b.textContent = a.name || a.id;
+      badges.appendChild(b);
+    });
+    div.appendChild(badges);
+  }
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function showConfirm(r) {
+  _pendingAction = r;
+  const panel = document.getElementById('confirm-panel');
+  const content = document.getElementById('confirm-content');
+  panel.style.display = 'block';
+  content.innerHTML = `
+    <p style="color:#fbbf24;margin-bottom:8px">AI wants to ${r.action} ${r.assets?.length} asset(s):</p>
+    ${(r.assets||[]).slice(0,3).map(a => `
+      <div style="background:#141620;border-radius:6px;padding:8px;margin-bottom:6px;font-size:12px">
+        <strong>${a.name}</strong> · ${a.type} · ${a.team}<br>
+        <span style="color:#64748b">${a.owner_name} &lt;${a.owner_email}&gt;</span>
+      </div>`).join('')}
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-primary btn-sm" onclick="confirmAction()">✅ Confirm</button>
+      <button class="btn btn-sm" style="background:#1e2235;color:#94a3b8;border:1px solid #2d3148" onclick="cancelAction()">Cancel</button>
+    </div>`;
+}
+
+async function confirmAction() {
+  if (!_pendingAction) return;
+  // Assets already saved by backend, just refresh
+  document.getElementById('confirm-panel').style.display = 'none';
+  loadAiAssets();
+  appendMsg('ai', `✅ Confirmed — ${_pendingAction.assets?.length} asset(s) saved to inventory.`);
+  _pendingAction = null;
+  toast('Assets saved');
+}
+
+function cancelAction() {
+  document.getElementById('confirm-panel').style.display = 'none';
+  appendMsg('ai', 'Action cancelled. The inventory was not changed.');
+  _pendingAction = null;
+}
+
+async function importAssetFile(input) {
+  const file = input.files[0]; if (!file) return;
+  appendMsg('ai', `📁 Importing "${file.name}"... this may take a moment.`);
+  const form = new FormData(); form.append('file', file);
+  try {
+    const r = await api('/asset-manager/import', {method:'POST', body: form});
+    handleChatResponse({...r, message: r.message || `Processed "${file.name}"`});
+  } catch(e) {
+    appendMsg('ai', '❌ Import error: ' + e.message);
+  }
+  input.value = '';
+}
+
+async function clearChat() {
+  await api('/asset-manager/clear', {method:'POST'});
+  const box = document.getElementById('chat-messages');
+  box.innerHTML = '<div style="background:#1e2235;border-radius:8px;padding:12px 14px;font-size:13px;color:#94a3b8;max-width:80%">Chat cleared. How can I help?</div>';
+  toast('Chat cleared');
+}
+
+async function loadAiAssets() {
+  const assets = await api('/assets');
+  const el = document.getElementById('ai-asset-list');
+  const count = document.getElementById('asset-count');
+  if (count) count.textContent = `${assets.length} assets`;
+  if (!el) return;
+  el.innerHTML = assets.map(a => `
+    <div style="padding:10px 14px;border-bottom:1px solid #1e2235;font-size:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="color:#e2e8f0">${a.name}</strong>
+        <span class="badge badge-unknown" style="font-size:10px">${a.type}</span>
+      </div>
+      <div style="color:#64748b;margin-top:2px">${a.owner_name} · ${a.team}</div>
+      ${a.ip ? `<div style="font-family:monospace;color:#475569;font-size:11px">${a.ip}</div>` : ''}
     </div>`).join('');
 }
 
-renderCveGrid();
+// Load assets when page opens
+const _origShowPageAI = showPage;
+showPage = function(p, el) {
+  _origShowPageAI(p, el);
+  if (p === 'assetai') loadAiAssets();
+};
+
+// Check system status on load
+(async () => {
+  const banner = document.getElementById('status-banner');
+  if (!banner) return;
+  try {
+    const s = await api('/status');
+    if (s.llm_active) {
+      banner.style.background = '#0d2d1a';
+      banner.style.borderColor = '#14532d';
+      banner.style.color = '#4ade80';
+      banner.innerHTML = '✅ System online — LLM provider: <strong>' + s.llm_provider + '</strong> &nbsp;|&nbsp; Owner detection: AI-powered';
+    } else {
+      banner.style.background = '#2d2308';
+      banner.style.borderColor = '#713f12';
+      banner.style.color = '#fbbf24';
+      banner.innerHTML = '⚠️ Demo mode — No LLM API key set. Set one in <code>.env</code> for AI-powered owner detection. Available: ' + s.available_providers.join(', ');
+    }
+  } catch(e) {
+    banner.style.background = '#2d1515';
+    banner.style.borderColor = '#7f1d1d';
+    banner.style.color = '#f87171';
+    banner.innerHTML = '❌ Cannot reach backend — run: <code>cd backend && python main.py</code>';
+  }
+})();
 </script>
 </body>
 </html>
+<script>
+// patch: add Tracking page nav item dynamically
+document.addEventListener('DOMContentLoaded', () => {
+  const nav = document.querySelector('.sidebar');
+  const btn = document.createElement('div');
+  btn.className = 'nav-item';
+  btn.innerHTML = '<span>🔁</span> Follow-up Tracking';
+  btn.onclick = function(){ showPage('tracking', this); };
+  nav.appendChild(btn);
+
+  const page = document.createElement('div');
+  page.className = 'page';
+  page.id = 'page-tracking';
+  page.innerHTML = `
+    <div class="page-title">Follow-up Tracking</div>
+    <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
+      <select id="track-filter" onchange="loadTracking()" style="background:#141620;border:1px solid #2d3148;color:#e2e8f0;padding:5px 10px;border-radius:6px;font-size:12px">
+        <option value="">All</option><option value="open">Open</option>
+        <option value="acknowledged">Acknowledged</option><option value="in_progress">In Progress</option>
+        <option value="patched">Patched</option><option value="escalated">Escalated</option>
+      </select>
+      <button class="btn btn-sm btn-process" onclick="runTick()">▶ Run Agent Tick</button>
+      <span id="tick-result" style="font-size:12px;color:#64748b"></span>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>CVE</th><th>Severity</th><th>Stage</th><th>Status</th><th>Hours Open</th><th>Recipients</th><th>Next Action</th><th>Reply</th></tr></thead>
+        <tbody id="tracking-table"><tr><td colspan="8" class="loading">Loading...<div class="spinner"></div></td></tr></tbody>
+      </table>
+    </div>
+    <div id="history-panel" style="display:none" class="card" style="padding:16px">
+      <div class="card-header"><h3 id="history-title">History</h3><button onclick="document.getElementById('history-panel').style.display='none'" style="background:none;border:none;color:#94a3b8;cursor:pointer">✕</button></div>
+      <div id="history-content" style="padding:16px;font-size:13px;line-height:1.8"></div>
+    </div>`;
+  document.querySelector('.main').appendChild(page);
+});
+
+async function loadTracking() {
+  const filter = document.getElementById('track-filter')?.value || '';
+  try {
+    const items = await api('/tracking' + (filter ? `?status=${filter}` : ''));
+    const tb = document.getElementById('tracking-table');
+    if (!items.length) { tb.innerHTML = '<tr><td colspan="8" class="empty">No tracked items yet — process a CVE first</td></tr>'; return; }
+    const stageLabel = {initial:'📬 Initial',followup_1:'🔁 Follow-up 1',followup_2:'⚠️ Follow-up 2',escalated:'🚨 Escalated'};
+    const statusColor = {open:'badge-new',acknowledged:'badge-medium',in_progress:'badge-medium',patched:'badge-notified',escalated:'badge-critical',false_positive:'badge-unknown'};
+    tb.innerHTML = items.map(item => {
+      const hoursOpen = ((Date.now() - new Date(item.started_at)) / 3600000).toFixed(0);
+      const nextDt = item.next_action ? new Date(item.next_action).toLocaleString('en-GB',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+      const recips = (item.recipients||[]).map(r=>`<span class="chip">${r.name||r.team}</span>`).join('');
+      return `<tr>
+        <td><code style="color:#818cf8;font-size:12px;cursor:pointer" onclick="showHistory('${item.cve_id}')">${item.cve_id}</code></td>
+        <td>${severityBadge(item.vuln?.severity)}</td>
+        <td style="font-size:12px">${stageLabel[item.stage]||item.stage}</td>
+        <td><span class="badge ${statusColor[item.status]||'badge-unknown'}">${item.status}</span></td>
+        <td style="font-size:12px;color:#64748b">${hoursOpen}h</td>
+        <td>${recips}</td>
+        <td style="font-size:11px;color:#64748b">${nextDt}</td>
+        <td>
+          <select onchange="sendReply('${item.cve_id}', this.value, this)" style="background:#141620;border:1px solid #2d3148;color:#e2e8f0;padding:3px 6px;border-radius:4px;font-size:11px">
+            <option value="">— update —</option>
+            <option value="acknowledged">Acknowledged</option>
+            <option value="in_progress">In Progress</option>
+            <option value="patched">✅ Patched</option>
+            <option value="false_positive">False Positive</option>
+          </select>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch(e) { document.getElementById('tracking-table').innerHTML = `<tr><td colspan="8" class="empty" style="color:#f87171">${e.message}</td></tr>`; }
+}
+
+async function showHistory(cveId) {
+  const panel = document.getElementById('history-panel');
+  const content = document.getElementById('history-content');
+  document.getElementById('history-title').textContent = `History — ${cveId}`;
+  panel.style.display = 'block';
+  content.innerHTML = '<div class="loading">Loading...<div class="spinner"></div></div>';
+  try {
+    const item = await api(`/tracking/${encodeURIComponent(cveId)}`);
+    const icons = {notification:'📬',followup:'🔁',owner_reply:'💬',escalation:'🚨'};
+    content.innerHTML = (item.history||[]).reverse().map(h => `
+      <div style="padding:10px 0;border-bottom:1px solid #1e2235">
+        <div style="display:flex;gap:8px;align-items:baseline">
+          <span>${icons[h.type]||'•'}</span>
+          <strong style="font-size:12px;color:#e2e8f0;text-transform:capitalize">${h.type.replace('_',' ')}</strong>
+          <span style="font-size:11px;color:#475569">${new Date(h.at).toLocaleString()}</span>
+          ${h.stage ? `<span class="badge badge-unknown" style="font-size:10px">${h.stage}</span>` : ''}
+        </div>
+        ${h.message ? `<div style="margin-top:6px;padding:8px;background:#141620;border-radius:4px;font-size:12px;color:#94a3b8;white-space:pre-wrap">${h.message.slice(0,400)}${h.message.length>400?'…':''}</div>` : ''}
+        ${h.note ? `<div style="font-size:12px;color:#64748b;margin-top:4px">${h.note}</div>` : ''}
+        ${h.replied_by ? `<div style="font-size:11px;color:#475569;margin-top:2px">By: ${h.replied_by}</div>` : ''}
+      </div>`).join('') || '<div style="color:#475569">No history yet</div>';
+  } catch(e) { content.innerHTML = `<div style="color:#f87171">${e.message}</div>`; }
+}
+
+async function sendReply(cveId, reply, el) {
+  if (!reply) return;
+  try {
+    const r = await api('/tracking/reply', {method:'POST',headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({cve_id: cveId, reply, replied_by: 'dashboard'})});
+    toast(`✅ ${cveId} → ${r.new_status}`);
+    el.value = '';
+    loadTracking();
+  } catch(e) { toast(e.message, false); }
+}
+
+async function runTick() {
+  const el = document.getElementById('tick-result');
+  el.textContent = 'Running...';
+  try {
+    const r = await api('/tracking/tick', {method:'POST'});
+    el.textContent = `✅ ${r.actions_taken} action(s) taken`;
+    if (r.actions_taken > 0) loadTracking();
+    setTimeout(()=>el.textContent='', 4000);
+  } catch(e) { el.textContent = '❌ ' + e.message; }
+}
+</script>
